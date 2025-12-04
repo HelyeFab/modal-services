@@ -4,6 +4,7 @@ Whisper Transcription Service on Modal
 - Uses faster-whisper with large-v3-turbo for Japanese
 - Downloads audio from YouTube via Cobalt API
 - Returns segments in same format as transcript-service
+- Protected with API key authentication
 """
 
 import modal
@@ -41,6 +42,7 @@ MODEL_NAME = "large-v3-turbo"
     min_containers=0,
     scaledown_window=300,
     volumes={CACHE_DIR: whisper_volume},
+    secrets=[modal.Secret.from_name("moshimoshi-api-key")],
 )
 class WhisperTranscribe:
     model = None
@@ -157,8 +159,10 @@ class WhisperTranscribe:
     @modal.asgi_app()
     def serve(self):
         """Serve FastAPI app with transcription endpoints."""
-        from fastapi import FastAPI, HTTPException, UploadFile
+        from fastapi import FastAPI, HTTPException, UploadFile, Request
         from fastapi.middleware.cors import CORSMiddleware
+        from fastapi.responses import JSONResponse
+        from starlette.middleware.base import BaseHTTPMiddleware
         from pydantic import BaseModel
         import traceback
 
@@ -168,7 +172,28 @@ class WhisperTranscribe:
             version="1.0.0",
         )
 
-        # Enable CORS
+        # API Key from Modal secret
+        API_KEY = os.environ.get("MOSHIMOSHI_API_KEY")
+
+        # Auth middleware
+        class AuthMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request: Request, call_next):
+                # Allow health check without auth
+                if request.url.path == "/health":
+                    return await call_next(request)
+
+                # Check API key
+                api_key = request.headers.get("X-API-Key")
+                if not api_key or api_key != API_KEY:
+                    return JSONResponse(
+                        status_code=401,
+                        content={"error": "Unauthorized", "detail": "Invalid or missing API key"}
+                    )
+                return await call_next(request)
+
+        api.add_middleware(AuthMiddleware)
+
+        # Enable CORS (after auth middleware so auth is checked first)
         api.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
@@ -271,6 +296,7 @@ class WhisperTranscribe:
             This is the recommended endpoint - upload audio from client.
 
             curl -X POST "https://URL/transcribe/audio" \
+              -H "X-API-Key: YOUR_KEY" \
               -F "file=@audio.mp3" \
               -F "language=ja"
             """
@@ -314,6 +340,7 @@ class WhisperTranscribe:
                     "health": "GET /health",
                 },
                 "description": "AI-powered transcription for videos without YouTube captions",
+                "auth": "Required - X-API-Key header",
             }
 
         return api
@@ -345,4 +372,4 @@ def main():
     print("  modal deploy deploy_whisper.py")
     print()
     print("Test with:")
-    print('  curl "https://YOUR_URL/transcribe?videoId=VIDEO_ID"')
+    print('  curl -H "X-API-Key: YOUR_KEY" "https://YOUR_URL/transcribe?videoId=VIDEO_ID"')

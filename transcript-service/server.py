@@ -1,9 +1,12 @@
 """
 Japanese YouTube Transcript Fetcher - Flask Server
 Fetches Japanese transcripts from YouTube videos using youtube-transcript-api
+Supports proxy rotation to avoid YouTube IP blocking
 """
 
+import os
 import json
+import random
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -12,14 +15,45 @@ from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFoun
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
+# Proxy configuration from environment variables
+# Format: PROXY_URL=http://user:pass@proxy.example.com:port
+# For multiple proxies (rotation): PROXY_URLS=http://p1:port,http://p2:port,http://p3:port
+PROXY_URL = os.environ.get('PROXY_URL')
+PROXY_URLS = os.environ.get('PROXY_URLS', '').split(',') if os.environ.get('PROXY_URLS') else []
+
+def get_proxy_config():
+    """Get proxy configuration, rotating if multiple proxies available"""
+    proxy = None
+
+    # If multiple proxies configured, pick random one for rotation
+    if PROXY_URLS and PROXY_URLS[0]:
+        proxy = random.choice(PROXY_URLS)
+        print(f"[PROXY] Using rotating proxy: {proxy[:30]}...")
+    elif PROXY_URL:
+        proxy = PROXY_URL
+        print(f"[PROXY] Using single proxy: {proxy[:30]}...")
+
+    if proxy:
+        return {"http": proxy, "https": proxy}
+
+    print("[PROXY] No proxy configured - using direct connection")
+    return None
+
+def create_transcript_api():
+    """Create YouTubeTranscriptApi instance with optional proxy"""
+    proxies = get_proxy_config()
+    if proxies:
+        return YouTubeTranscriptApi(proxies=proxies)
+    return YouTubeTranscriptApi()
+
 def fetch_japanese_transcript(video_id):
     """
     Fetch Japanese transcript for a YouTube video
     Prioritizes manual Japanese over auto-generated Japanese
     """
     try:
-        # Create YouTubeTranscriptApi instance and list transcripts
-        ytt_api = YouTubeTranscriptApi()
+        # Create YouTubeTranscriptApi instance with optional proxy support
+        ytt_api = create_transcript_api()
         transcript_list = ytt_api.list(video_id)
 
         available_transcripts = []
@@ -196,9 +230,11 @@ def health():
 @app.route('/', methods=['GET'])
 def root():
     """Root endpoint with service info"""
+    proxy_status = 'rotating' if PROXY_URLS and PROXY_URLS[0] else ('single' if PROXY_URL else 'none')
     return jsonify({
         'service': 'YouTube Transcript Service',
-        'version': '1.0.0',
+        'version': '1.1.0',
+        'proxy_status': proxy_status,
         'endpoints': {
             'transcript': 'GET /get-japanese-transcript?videoId={id}',
             'health': 'GET /health'
@@ -207,6 +243,5 @@ def root():
 
 
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)

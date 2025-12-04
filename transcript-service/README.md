@@ -84,10 +84,22 @@ If using a monorepo (like modal-services):
 2. Go to **Settings** → **Build**
 3. Set **Root Directory** to: `transcript-service`
 
-### Step 4: Set Environment Variables (Optional)
+### Step 4: Set Environment Variables
 
 1. Go to **Variables** tab
 2. Railway auto-detects `PORT` - no need to set it
+
+**Proxy Configuration (Required to avoid YouTube IP blocking):**
+
+```bash
+# Single proxy
+PROXY_URL=http://user:pass@proxy.webshare.io:port
+
+# OR multiple proxies for rotation (comma-separated)
+PROXY_URLS=http://user:pass@p1.webshare.io:port,http://user:pass@p2.webshare.io:port
+```
+
+**Recommended:** [Webshare.io](https://www.webshare.io/) rotating residential proxies (~$5-10/month)
 
 ### Step 5: Generate Domain
 

@@ -67,7 +67,14 @@
       "Bash(wsl bash -c \"pip3 install modal --user && cd /mnt/c/Users/esfab/WinDevProjects/modal-services/kokoro-tts && python3 -m modal deploy deploy_kokoro.py 2>&1\")",
       "Bash(dir \"C:\\Users\\esfab\\WinDevProjects\\modal-services\\transcript-service\")",
       "Bash(git init:*)",
-      "Bash(dir /s /b nul 2)"
+      "Bash(dir /s /b nul 2)",
+      "Bash(gh repo create:*)",
+      "Bash(wsl bash:*)",
+      "Bash(dir:*)",
+      "WebFetch(domain:hub.docker.com)",
+      "Bash(C:UsersesfabWinDevProjectsmodal-servicesvoicevox-ttsvoices.json)",
+      "Bash(firebase functions:secrets:set:*)",
+      "Bash(del \"C:\\Users\\esfab\\WinDevProjects\\moshimoshi\\src\\app\\news\\NewsPage.tsx\")"
     ],
     "deny": [],
     "ask": []
