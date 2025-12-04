@@ -1,6 +1,10 @@
 # Whisper Transcription Service on Modal
 
-AI-powered transcription for YouTube videos using OpenAI's Whisper model. This service complements the YouTube Transcript Service by providing transcription for videos that don't have captions.
+> **Status: EXPERIMENTAL** - YouTube audio download is blocked from cloud IPs.
+> Audio file upload works, but URL-based transcription requires a download proxy.
+> For production, use the Railway transcript-service which handles most videos.
+
+AI-powered transcription using OpenAI's Whisper model. Intended for videos without YouTube captions.
 
 ## Features
 

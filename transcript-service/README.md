@@ -1,6 +1,8 @@
 # YouTube Transcript Service
 
-A Flask API that fetches Japanese transcripts from YouTube videos. Migrated from Sheldon homeserver to Railway for better reliability.
+A Flask API that fetches Japanese transcripts from YouTube videos using existing YouTube captions.
+
+**Production URL:** `https://modal-services-production.up.railway.app`
 
 ## Features
 
@@ -22,7 +24,7 @@ A Flask API that fetches Japanese transcripts from YouTube videos. Migrated from
 ### Get Japanese Transcript
 
 ```bash
-curl "https://YOUR_RAILWAY_URL/get-japanese-transcript?videoId=cAFz4nWkJoA"
+curl "https://modal-services-production.up.railway.app/get-japanese-transcript?videoId=cAFz4nWkJoA"
 ```
 
 **Response:**
@@ -102,24 +104,22 @@ Or add a custom domain:
 
 ```bash
 # Health check
-curl https://YOUR_RAILWAY_URL/health
+curl https://modal-services-production.up.railway.app/health
 
 # Test transcript
-curl "https://YOUR_RAILWAY_URL/get-japanese-transcript?videoId=cAFz4nWkJoA"
+curl "https://modal-services-production.up.railway.app/get-japanese-transcript?videoId=cAFz4nWkJoA"
 ```
 
 ---
 
-## Update Moshimoshi
+## Moshimoshi Integration
 
-After deployment, update the environment variable in moshimoshi:
+Update the environment variable in moshimoshi:
 
 ```env
 # .env.local
-TRANSCRIPT_SERVER_URL=https://YOUR_RAILWAY_URL
+TRANSCRIPT_SERVER_URL=https://modal-services-production.up.railway.app
 ```
-
-The fallback chain in moshimoshi will now use Railway instead of Sheldon.
 
 ---
 
@@ -162,16 +162,5 @@ transcript-service/
 Railway Hobby Plan (~$5/month):
 - Always-on (no cold starts)
 - 512MB RAM, shared CPU
-- Plenty for this lightweight service
-
----
-
-## Comparison: Sheldon vs Railway
-
-| Aspect | Sheldon (Current) | Railway |
-|--------|-------------------|---------|
-| Uptime | Depends on home internet | 99.9% SLA |
-| Cold starts | None (always running) | None (always running) |
-| Cost | $0 (home electric) | ~$5/month |
-| Maintenance | Manual updates | Auto-deploys from GitHub |
-| Domain | transcript.selfmind.dev | transcript.appsparkle.org |
+- Auto-deploys from GitHub on push
+- 99.9% SLA uptime
