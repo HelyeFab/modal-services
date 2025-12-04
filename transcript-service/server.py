@@ -12,38 +12,58 @@ from flask_cors import CORS
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 
+# Try to import new proxy config classes (v1.0.0+)
+try:
+    from youtube_transcript_api.proxies import WebshareProxyConfig, GenericProxyConfig
+    NEW_PROXY_API = True
+except ImportError:
+    NEW_PROXY_API = False
+    print("[PROXY] Old API detected - proxy support may be limited")
+
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
 # Proxy configuration from environment variables
-# Format: PROXY_URL=http://user:pass@proxy.example.com:port
-# For multiple proxies (rotation): PROXY_URLS=http://p1:port,http://p2:port,http://p3:port
+# For Webshare: WEBSHARE_USERNAME and WEBSHARE_PASSWORD
+# For generic proxy: PROXY_URL=http://user:pass@proxy.example.com:port
+WEBSHARE_USERNAME = os.environ.get('WEBSHARE_USERNAME')
+WEBSHARE_PASSWORD = os.environ.get('WEBSHARE_PASSWORD')
 PROXY_URL = os.environ.get('PROXY_URL')
 PROXY_URLS = os.environ.get('PROXY_URLS', '').split(',') if os.environ.get('PROXY_URLS') else []
 
 def get_proxy_config():
-    """Get proxy configuration, rotating if multiple proxies available"""
-    proxy = None
+    """Get proxy configuration for the new API (v1.0.0+)"""
+    if not NEW_PROXY_API:
+        return None
 
-    # If multiple proxies configured, pick random one for rotation
+    # Prefer Webshare if credentials provided
+    if WEBSHARE_USERNAME and WEBSHARE_PASSWORD:
+        print(f"[PROXY] Using Webshare rotating proxies")
+        return WebshareProxyConfig(
+            proxy_username=WEBSHARE_USERNAME,
+            proxy_password=WEBSHARE_PASSWORD
+        )
+
+    # Fall back to generic proxy URL
+    proxy = None
     if PROXY_URLS and PROXY_URLS[0]:
         proxy = random.choice(PROXY_URLS)
-        print(f"[PROXY] Using rotating proxy: {proxy[:30]}...")
+        print(f"[PROXY] Using rotating generic proxy: {proxy[:40]}...")
     elif PROXY_URL:
         proxy = PROXY_URL
-        print(f"[PROXY] Using single proxy: {proxy[:30]}...")
+        print(f"[PROXY] Using single generic proxy: {proxy[:40]}...")
 
     if proxy:
-        return {"http": proxy, "https": proxy}
+        return GenericProxyConfig(http_proxy=proxy, https_proxy=proxy)
 
     print("[PROXY] No proxy configured - using direct connection")
     return None
 
 def create_transcript_api():
     """Create YouTubeTranscriptApi instance with optional proxy"""
-    proxies = get_proxy_config()
-    if proxies:
-        return YouTubeTranscriptApi(proxies=proxies)
+    proxy_config = get_proxy_config()
+    if proxy_config:
+        return YouTubeTranscriptApi(proxy_config=proxy_config)
     return YouTubeTranscriptApi()
 
 def fetch_japanese_transcript(video_id):
@@ -230,11 +250,20 @@ def health():
 @app.route('/', methods=['GET'])
 def root():
     """Root endpoint with service info"""
-    proxy_status = 'rotating' if PROXY_URLS and PROXY_URLS[0] else ('single' if PROXY_URL else 'none')
+    if WEBSHARE_USERNAME and WEBSHARE_PASSWORD:
+        proxy_status = 'webshare'
+    elif PROXY_URLS and PROXY_URLS[0]:
+        proxy_status = 'rotating'
+    elif PROXY_URL:
+        proxy_status = 'single'
+    else:
+        proxy_status = 'none'
+
     return jsonify({
         'service': 'YouTube Transcript Service',
-        'version': '1.1.0',
+        'version': '1.2.0',
         'proxy_status': proxy_status,
+        'new_proxy_api': NEW_PROXY_API,
         'endpoints': {
             'transcript': 'GET /get-japanese-transcript?videoId={id}',
             'health': 'GET /health'

@@ -74,7 +74,8 @@
       "WebFetch(domain:hub.docker.com)",
       "Bash(C:UsersesfabWinDevProjectsmodal-servicesvoicevox-ttsvoices.json)",
       "Bash(firebase functions:secrets:set:*)",
-      "Bash(del \"C:\\Users\\esfab\\WinDevProjects\\moshimoshi\\src\\app\\news\\NewsPage.tsx\")"
+      "Bash(del \"C:\\Users\\esfab\\WinDevProjects\\moshimoshi\\src\\app\\news\\NewsPage.tsx\")",
+      "Bash(npm run deploy:*)"
     ],
     "deny": [],
     "ask": []

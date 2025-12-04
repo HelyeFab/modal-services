@@ -1,15 +1,25 @@
 # Ollama LLM Service on Modal
 
-A serverless LLM API running Llama 3.2 (3B) via Ollama on Modal. Features OpenAI-compatible endpoints and persistent model caching.
+A serverless LLM API running **Qwen 2.5 32B** via Ollama on Modal. Features OpenAI-compatible endpoints, persistent model caching, and excellent Japanese language support.
 
 ## Features
 
-- **Llama 3.2 3B Instruct** - Lightweight model ideal for text processing tasks
+- **Qwen 2.5 32B** - High-quality model with excellent Japanese language support
 - **OpenAI-compatible API** - Drop-in replacement using `/v1/chat/completions`
 - **Streaming support** - Real-time token streaming via SSE for both endpoints
-- **Persistent model caching** - Model stored in Modal Volume, fast cold starts after first run
+- **JSON mode** - Native JSON output format support
+- **Persistent model caching** - Model stored in Modal Volume (~20GB), fast cold starts after first run
 - **Auto-scaling** - Scales to zero when idle, scales up on demand
-- **GPU-accelerated** - Runs on NVIDIA T4 GPU
+- **GPU-accelerated** - Runs on NVIDIA A10G GPU (24GB VRAM)
+
+## Use Cases (Japanese Language Learning)
+
+- **Grammar explanations** - Detailed Japanese grammar analysis
+- **Translations** - High-quality JA↔EN translations with nuance
+- **Story generation** - JLPT-appropriate educational stories
+- **Moodboard generation** - Themed kanji collections
+- **Review questions** - Educational quiz generation
+- **Transcript cleaning** - YouTube caption cleanup
 
 ## Deployment
 
@@ -454,14 +464,25 @@ Modal pricing (as of Dec 2024):
 
 | Resource | Cost |
 |----------|------|
-| T4 GPU | $0.000164/sec (~$0.59/hr) |
+| A10G GPU | $0.000306/sec (~$1.10/hr) |
 | CPU | $0.000018/sec per core |
 | Memory | $0.000002/sec per GB |
 
-With `min_containers=0` and `scaledown_window=300`:
+With `min_containers=0` and `scaledown_window=600`:
 - **Idle:** $0 (no running containers)
-- **Active:** ~$0.60/hr while processing requests
-- **Cold start:** ~$0.02 per cold start (1-2 min GPU time)
+- **Active:** ~$1.10/hr while processing requests
+- **Cold start:** ~$0.50-1.00 per cold start (30-60s GPU time after model cached)
+- **First deploy:** ~$2-3 (5-10 min to download 20GB model)
+
+### Cost Comparison vs OpenAI
+
+| Task | OpenAI GPT-4o-mini | Modal Qwen 32B |
+|------|-------------------|----------------|
+| Grammar explanation | ~$0.001 | ~$0.01 (if cold) / ~$0.001 (warm) |
+| Story generation | ~$0.01 | ~$0.02 (if cold) / ~$0.003 (warm) |
+| Moodboard (15 kanji) | ~$0.005 | ~$0.015 (if cold) / ~$0.002 (warm) |
+
+**Breakeven:** ~100-200 requests/month makes Modal cheaper than OpenAI
 
 ---
 
@@ -517,6 +538,16 @@ ollama-llm/
 
 ## Limitations
 
-- **Model size:** 3B parameters - good for simple tasks, may struggle with complex reasoning
-- **Context window:** 8K tokens max
-- **Cold starts:** First request takes 1-2 min if container is cold
+- **Cold starts:** First request after idle takes 30-60 seconds (model loading)
+- **First deployment:** Initial model download takes 5-10 minutes (~20GB)
+- **Context window:** 32K tokens max (sufficient for most tasks)
+- **Cost when warm:** Higher per-hour cost than T4, but better quality
+
+## Model Capabilities (Qwen 2.5 32B)
+
+- **Japanese language:** Excellent - trained on large Japanese corpus
+- **Grammar understanding:** Strong - can explain complex patterns
+- **Translation quality:** High - nuanced JA↔EN
+- **JSON output:** Reliable - supports native JSON mode
+- **Reasoning:** Good - 32B parameters enable complex reasoning
+- **Context length:** 32K tokens - handles long documents
