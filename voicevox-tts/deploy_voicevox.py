@@ -59,6 +59,20 @@ def serve():
 
     api.add_middleware(AuthMiddleware)
 
+    # CORS: add AFTER AuthMiddleware so it becomes the OUTERMOST middleware
+    # (Starlette processes middleware in reverse-add order — last added = first to run).
+    # This lets CORSMiddleware handle OPTIONS preflight without invoking AuthMiddleware,
+    # which would otherwise 401 the preflight (browsers don't send auth headers on OPTIONS).
+    # Required for browser-based clients like Anki card templates calling this endpoint.
+    from fastapi.middleware.cors import CORSMiddleware
+    api.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["POST", "GET", "OPTIONS"],
+        allow_headers=["Content-Type", "X-API-Key"],
+    )
+
     engine_ready = False
     engine_process = None
 
